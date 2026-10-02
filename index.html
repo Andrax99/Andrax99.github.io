@@ -1,662 +1,208 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#1b2a6b">
-<title>MemoCam</title>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#1b2a6b"><title>MemoCam</title>
 <style>
-:root{
-  --bg:#1b2a6b; --sf:#26378a; --sf2:#31459f; --ln:rgba(255,255,255,.18);
-  --tx:#f6f7ff; --mu:#b4bde6;
-  --sun:#ffc83d; --mint:#35d6c4; --pink:#ff4f6d;
-  --r:16px;
-  --font:ui-rounded,"Nunito","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
-}
+:root{--bg:#1b2a6b;--sf:#26378a;--sf2:#31459f;--ln:rgba(255,255,255,.18);--tx:#f6f7ff;--mu:#b4bde6;--sun:#ffc83d;--mint:#35d6c4;--pink:#ff4f6d}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:var(--font);overscroll-behavior:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font-family:ui-rounded,"Nunito","Trebuchet MS",system-ui,sans-serif}
 body{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top)}
 button{font:inherit;color:inherit;border:0;cursor:pointer}
-button:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-
-header{display:flex;align-items:center;gap:10px;padding:10px 14px 8px}
-.logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:21px;letter-spacing:.2px}
-.mark{position:relative;width:30px;height:26px;flex:none}
-.mark::before,.mark::after{content:"";position:absolute;width:17px;height:23px;border-radius:5px;top:1px}
-.mark::before{left:0;background:var(--sun);transform:rotate(-9deg)}
-.mark::after{right:0;background:var(--pink);transform:rotate(8deg);box-shadow:0 0 0 2px var(--bg)}
-.chips{margin-left:auto;display:flex;gap:6px}
-.chip{background:var(--sf);border-radius:99px;padding:5px 11px;font-size:12.5px;color:var(--mu);white-space:nowrap}
-.chip b{color:var(--tx)}
-.icon-btn{width:38px;height:38px;border-radius:50%;background:var(--sf);font-size:18px;display:grid;place-items:center}
-
-main{flex:1;min-height:0;position:relative}
-.view{position:absolute;inset:0;display:none;flex-direction:column}
-.view.on{display:flex}
-
-/* Pantalla de inicio */
+header{display:flex;align-items:center;gap:8px;padding:10px 14px 6px}
+.logo{font-weight:900;font-size:21px}.logo i{display:inline-block;width:14px;height:19px;border-radius:4px;background:var(--sun);transform:rotate(-9deg);margin-right:7px;box-shadow:9px 2px 0 var(--pink)}
+.chips{margin-left:auto;display:flex;gap:6px}.chip{background:var(--sf);border-radius:99px;padding:5px 11px;font-size:12.5px;color:var(--mu)}.chip b{color:var(--tx)}
+.ib{width:38px;height:38px;border-radius:50%;background:var(--sf);font-size:18px}
+main{flex:1;min-height:0;position:relative}.view{position:absolute;inset:0;display:none;flex-direction:column}.view.on{display:flex}
 .start{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:14px}
-.start h1{margin:0;font-size:26px;line-height:1.15;max-width:15ch}
-.start p{margin:0;color:var(--mu);max-width:32ch;line-height:1.45;font-size:15px}
-.steps{list-style:none;margin:6px 0 4px;padding:0;display:flex;flex-direction:column;gap:8px;text-align:left;max-width:310px;font-size:14.5px;color:var(--tx)}
-.steps li{display:flex;gap:10px;align-items:flex-start;line-height:1.35}
-.steps span{flex:none;width:24px;height:24px;border-radius:50%;background:var(--sun);color:#1b2a6b;font-weight:900;font-size:13px;display:grid;place-items:center;margin-top:-1px}
-.btn{background:var(--sun);color:#1b2a6b;font-weight:800;border-radius:14px;padding:13px 20px;font-size:16px}
-.btn.ghost{background:var(--sf);color:var(--tx)}
-.btn.small{padding:9px 14px;font-size:14px;border-radius:12px}
-.btn.danger{background:var(--pink);color:#fff}
-.btn.mint{background:var(--mint);color:#0d2f33}
-.err{color:var(--sun);font-size:13.5px;min-height:1em;max-width:34ch;line-height:1.4}
-
-/* Cámara */
-#stageWrap{flex:1;min-height:0;display:none;align-items:center;justify-content:center;padding:2px 8px}
-#stage{position:relative;border-radius:14px;overflow:hidden;background:#000;touch-action:none;user-select:none;-webkit-user-select:none}
-#video,#photo{position:absolute;inset:0;width:100%;height:100%;display:none;object-fit:fill}
-#gridRect{position:absolute;border:2px solid var(--sun);touch-action:none;cursor:move}
-#gridRect.blocked{pointer-events:none;opacity:.8}
-#cells{position:absolute;inset:0;display:grid}
-.cell{position:relative;border:1px solid rgba(255,255,255,.5)}
-.cell .lb{position:absolute;left:3px;top:2px;font-size:11px;font-weight:800;text-shadow:0 1px 2px #000,0 0 3px #000}
-.cell.has{background:rgba(53,214,196,.24)}
-.cell.done{background:rgba(10,16,48,.62)}
-.cell.done::after{content:"✓";position:absolute;inset:0;display:grid;place-items:center;font-size:26px;font-weight:900;color:#fff;text-shadow:0 1px 4px #000}
-.cell .dot{position:absolute;right:4px;bottom:4px;width:11px;height:11px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.55)}
-.cell.pa,.cell.pb{animation:pulse 1s ease-in-out infinite;background:rgba(255,200,61,.38)}
-@keyframes pulse{50%{box-shadow:inset 0 0 0 4px var(--sun)}}
-@media (prefers-reduced-motion:reduce){.cell.pa,.cell.pb{animation:none;box-shadow:inset 0 0 0 4px var(--sun)}}
-.handle{position:absolute;width:40px;height:40px;z-index:3}
-.handle::after{content:"";position:absolute;left:12px;top:12px;width:16px;height:16px;border-radius:50%;background:var(--sun);border:3px solid #1b2a6b}
-.handle.tl{left:-20px;top:-20px}
-.handle.br{right:-20px;bottom:-20px}
-.hint{padding:6px 16px 2px;font-size:13px;color:var(--mu);text-align:center;line-height:1.35;display:none}
-.actions{display:none;gap:8px;padding:8px 12px 10px;justify-content:center}
-.actions .btn{flex:1;max-width:170px}
-
-.pend{position:absolute;left:10px;right:10px;bottom:10px;background:var(--sf2);border:2px solid var(--sun);border-radius:var(--r);padding:12px;display:none;flex-direction:column;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);z-index:5}
-.pend .row{display:flex;align-items:center;gap:12px}
-.pend .pair{display:flex;gap:8px}
-.pend .pair figure{margin:0;text-align:center;font-size:12px;color:var(--mu)}
-.pend .pair img{display:block;width:62px;height:78px;object-fit:cover;border-radius:9px;margin-bottom:3px;border:2px solid var(--ln)}
-.pend .txt{font-size:15px;line-height:1.3;font-weight:700}
-.pend .txt small{display:block;color:var(--mu);font-weight:500;margin-top:2px}
-.pend .btns{display:flex;gap:8px}
-.pend .btns .btn{flex:1}
-
-/* Tablero */
-#boardScroll{flex:1;overflow:auto;padding:6px 14px 90px}
-.sub{color:var(--mu);font-size:13.5px;margin:2px 2px 10px;line-height:1.4}
-#boardGrid{display:grid;gap:8px}
-.bc{position:relative;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--sf);border:3px solid transparent;cursor:pointer}
-.bc img{width:100%;height:100%;object-fit:cover;display:block}
-.bc .bl{position:absolute;left:4px;top:3px;font-size:11px;font-weight:800;background:rgba(10,16,48,.7);padding:1px 6px;border-radius:99px}
-.bc.empty{background:transparent;border:2px dashed var(--ln);display:grid;place-items:center}
-.bc.empty .bl{background:none;color:var(--mu)}
-.bc .q{font-size:24px;color:var(--ln);font-weight:900}
-.bc.done img{opacity:.38}
-.bc .ck{position:absolute;inset:0;display:grid;place-items:center;font-size:30px;font-weight:900;text-shadow:0 1px 5px #000}
-.bc.sel{outline:4px solid var(--mint);outline-offset:-1px}
-#selBar{position:absolute;left:10px;right:10px;bottom:10px;display:none;gap:8px;flex-wrap:wrap;background:var(--sf2);padding:10px;border-radius:var(--r);box-shadow:0 10px 30px rgba(0,0,0,.45)}
-#selBar .btn{flex:1;min-width:110px}
-
+.start h1{margin:0;font-size:25px;max-width:16ch}.start p{margin:0;color:var(--mu);max-width:34ch;line-height:1.45;font-size:15px}
+.btn{background:var(--sun);color:#1b2a6b;font-weight:800;border-radius:14px;padding:13px 20px;font-size:16px}.btn.g{background:var(--sf2);color:var(--tx)}.btn.d{background:var(--pink);color:#fff}
+#wrap{flex:1;min-height:0;display:none;align-items:center;justify-content:center;padding:2px 8px}
+#stage{position:relative;border-radius:14px;overflow:hidden;background:#000}
+#video,#ov{position:absolute;inset:0;width:100%;height:100%}
+#pill{position:absolute;left:8px;top:8px;background:rgba(10,16,48,.78);padding:6px 11px;border-radius:99px;font-size:12.5px;font-weight:700}
+.hint{display:none;padding:6px 16px 10px;font-size:13px;color:var(--mu);text-align:center}
+#bs{flex:1;overflow:auto;padding:6px 14px 20px}.sub{color:var(--mu);font-size:13.5px;margin:2px 2px 10px}
+#bg{display:grid;gap:6px}.bc{position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--sf);border:3px solid transparent;cursor:pointer}
+.bc img{width:100%;height:100%;object-fit:cover;display:block}.bc.e{background:none;border:2px dashed var(--ln)}
+.bc.m img{opacity:.4}.bl{position:absolute;left:3px;top:2px;font-size:10px;font-weight:800;background:rgba(10,16,48,.75);padding:1px 5px;border-radius:99px}
 nav{display:flex;gap:6px;padding:8px 12px calc(8px + env(safe-area-inset-bottom));background:#15215a}
-nav button{flex:1;padding:11px;border-radius:13px;background:transparent;color:var(--mu);font-weight:800;font-size:15px}
-nav button.on{background:var(--sf);color:var(--tx)}
-
-/* Ajustes */
-.sheet{position:fixed;inset:0;background:rgba(5,8,30,.65);display:none;align-items:flex-end;z-index:20}
-.sheet.on{display:flex}
-.panel{width:100%;background:var(--sf);border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:16px;max-height:88dvh;overflow:auto}
-.panel h2{margin:0;font-size:19px}
-.fld{display:flex;align-items:center;justify-content:space-between;gap:12px;font-weight:700}
-.step{display:flex;align-items:center;gap:12px}
-.step button{width:40px;height:40px;border-radius:12px;background:var(--sf2);font-size:22px;font-weight:900}
-.step output{min-width:22px;text-align:center;font-size:19px;font-weight:900}
-.fld.col{flex-direction:column;align-items:stretch;gap:6px}
-.fld small{color:var(--mu);font-weight:500;line-height:1.35}
-input[type=range]{width:100%;accent-color:var(--sun)}
-.toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translate(-50%,-12px);background:#fff;color:#1b2a6b;font-weight:800;padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:30;max-width:90vw;text-align:center}
-.toast.on{opacity:1;transform:translate(-50%,0)}
-</style>
-</head>
-<body>
-
-<header>
-  <div class="logo"><span class="mark"></span>MemoCam</div>
-  <div class="chips">
-    <span class="chip">Vistas <b id="stSeen">0</b></span>
-    <span class="chip">Parejas <b id="stPairs">0/8</b></span>
-  </div>
-  <button class="icon-btn" id="btnSet" aria-label="Ajustes">⚙</button>
-</header>
-
+nav button{flex:1;padding:11px;border-radius:13px;background:none;color:var(--mu);font-weight:800}nav button.on{background:var(--sf);color:var(--tx)}
+.sheet{position:fixed;inset:0;background:rgba(5,8,30,.65);display:none;align-items:flex-end;z-index:20}.sheet.on{display:flex}
+.panel{width:100%;background:var(--sf);border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px}
+.panel h2{margin:0;font-size:19px}.panel small{color:var(--mu);line-height:1.35}.row{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--sun)}input[type=checkbox]{width:22px;height:22px;accent-color:var(--sun)}
+.toast{position:fixed;left:50%;top:calc(64px + env(safe-area-inset-top));transform:translateX(-50%);background:#fff;color:#1b2a6b;font-weight:800;padding:10px 16px;border-radius:99px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30}.toast.on{opacity:1}
+</style></head><body>
+<header><div class="logo"><i></i>MemoCam</div>
+<div class="chips"><span class="chip">Vistas <b id="stS">0</b></span><span class="chip">Parejas <b id="stP">0</b></span></div>
+<button class="ib" id="bSet" aria-label="Ajustes">⚙</button></header>
 <main>
-  <section class="view on" id="vCam">
-    <div class="start" id="start">
-      <h1>Memoriza el tablero con la cámara</h1>
-      <ol class="steps">
-        <li><span>1</span>Apunta el celular al memorama y encaja la cuadrícula.</li>
-        <li><span>2</span>Cuando alguien voltee una carta, toca su casilla.</li>
-        <li><span>3</span>La app te avisa si esa carta ya había salido y dónde.</li>
-      </ol>
-      <button class="btn" id="btnStart">Activar cámara</button>
-      <button class="btn ghost small" id="btnPhotoMode">Usar fotos en vez de video</button>
-      <div class="err" id="startMsg"></div>
-    </div>
-
-    <div id="stageWrap">
-      <div id="stage">
-        <video id="video" playsinline muted autoplay></video>
-        <img id="photo" alt="Foto del tablero">
-        <div id="gridRect">
-          <div id="cells"></div>
-          <div class="handle tl" data-h="tl"></div>
-          <div class="handle br" data-h="br"></div>
-        </div>
-      </div>
-    </div>
-    <div class="hint" id="hint"></div>
-    <div class="actions" id="actions">
-      <button class="btn ghost small" id="btnUndo">Deshacer</button>
-      <button class="btn ghost small" id="btnCam">Cambiar cámara</button>
-    </div>
-
-    <div class="pend" id="pend">
-      <div class="row">
-        <div class="pair">
-          <figure><img id="pImgNew" alt=""><span id="pLabNew"></span></figure>
-          <figure><img id="pImgOld" alt=""><span id="pLabOld"></span></figure>
-        </div>
-        <div class="txt" id="pTxt"></div>
-      </div>
-      <div class="btns">
-        <button class="btn mint" id="btnYes">Es pareja</button>
-        <button class="btn ghost" id="btnNo">Es otra carta</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="view" id="vBoard">
-    <div id="boardScroll">
-      <p class="sub" id="boardSub"></p>
-      <div id="boardGrid"></div>
-    </div>
-    <div id="selBar"></div>
-  </section>
+<section class="view on" id="vCam">
+ <div class="start" id="start"><h1>Memoriza el tablero con la cámara</h1>
+ <p>Apunta al memorama con todas las cartas boca abajo. La app detecta la cuadrícula, toma cada carta cuando se voltea y te dice por voz dónde está su pareja.</p>
+ <button class="btn" id="bGo">Activar cámara</button><small id="err" style="color:var(--sun)"></small></div>
+ <div id="wrap"><div id="stage"><video id="video" playsinline muted autoplay></video><canvas id="ov"></canvas><div id="pill">Buscando tablero…</div></div></div>
+ <div class="hint" id="hint">Empieza con todas las cartas boca abajo y el tablero completo en cuadro.</div>
+</section>
+<section class="view" id="vBoard"><div id="bs"><p class="sub" id="bsub"></p><div id="bg"></div></div></section>
 </main>
-
-<nav>
-  <button class="on" id="tabCam">Cámara</button>
-  <button id="tabBoard">Tablero</button>
-</nav>
-
-<div class="sheet" id="sheet">
-  <div class="panel" role="dialog" aria-label="Ajustes">
-    <h2>Ajustes</h2>
-    <div class="fld"><span>Filas</span>
-      <div class="step"><button data-k="rows" data-d="-1" aria-label="Menos filas">−</button><output id="oRows">4</output><button data-k="rows" data-d="1" aria-label="Más filas">+</button></div>
-    </div>
-    <div class="fld"><span>Columnas</span>
-      <div class="step"><button data-k="cols" data-d="-1" aria-label="Menos columnas">−</button><output id="oCols">4</output><button data-k="cols" data-d="1" aria-label="Más columnas">+</button></div>
-    </div>
-    <div class="fld col">
-      <span>Sensibilidad: <b id="oSens">85</b>%</span>
-      <input type="range" id="rngSens" min="60" max="97" value="85">
-      <small>Si te marca parejas que no lo son, súbela. Si no detecta parejas reales, bájala.</small>
-    </div>
-    <button class="btn danger" id="btnReset">Reiniciar partida</button>
-    <button class="btn ghost" id="btnClose">Cerrar</button>
-  </div>
-</div>
-
-<div class="toast" id="toast" role="status"></div>
-<input type="file" id="fileIn" accept="image/*" capture="environment" hidden>
-
+<nav><button class="on" id="tC">Cámara</button><button id="tB">Tablero</button></nav>
+<div class="sheet" id="sheet"><div class="panel"><h2>Ajustes</h2>
+ <div><div class="row"><span>Exigencia de parecido</span><b id="oS">82%</b></div><input type="range" id="rS" min="50" max="97" value="82">
+ <small>Más alto = más estricto. Si marca parejas falsas, súbela; si no detecta las reales, bájala.</small></div>
+ <div class="row"><span>Voz</span><input type="checkbox" id="cV" checked></div>
+ <small id="ia"></small>
+ <button class="btn g" id="bCal">Recalibrar reverso de las cartas</button>
+ <button class="btn d" id="bRes">Reiniciar partida</button><button class="btn g" id="bX">Cerrar</button></div></div>
+<div class="toast" id="toast"></div>
 <script>
-(() => {
-  const $ = s => document.querySelector(s);
-  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+(()=>{
+const $=s=>document.querySelector(s),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const S={rows:0,cols:0,locked:false,cand:{R:0,C:0,n:0},rects:null,cells:[],cs:[],back:null,sens:.82,voice:true,pairSeq:0,model:null,loading:false,ia:'sin cargar',busy:false,flash:null};
+const video=$('#video'),ov=$('#ov'),octx=ov.getContext('2d'),stage=$('#stage');
+let on=false,tT,stream=null;
+const lab=i=>String.fromCharCode(65+Math.floor(i/S.cols))+(i%S.cols+1);
+const pc=id=>`hsl(${(id*67)%360} 90% 62%)`;
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('on'),2200)};
+const LET={A:'a',B:'be',C:'ce',D:'de',E:'e',F:'efe',G:'ge',H:'hache',I:'i',J:'jota'};
+const spk=i=>(LET[lab(i)[0]]||lab(i)[0])+' '+lab(i).slice(1);
+function say(t){if(!S.voice||!window.speechSynthesis)return;const u=new SpeechSynthesisUtterance(t);u.lang='es-CO';u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u)}
+function initCells(){S.cells=Array(S.rows*S.cols).fill(null);S.cs=[];S.pairSeq=0;S.flash=null}
 
-  const state = {
-    rows: 4, cols: 4,
-    rect: { x: .07, y: .08, w: .86, h: .84 },
-    cells: [], sens: .85,
-    pending: null, pairSeq: 0, hist: [], sel: [],
-    facing: 'environment'
-  };
-  let mode = null;          // 'video' | 'photo' | null
-  let stream = null;
-  let photoURL = null;
-  let toastT = null;
+/* ---------- Detección automática del tablero (sin parámetros manuales) ---------- */
+const DW=192,dc=document.createElement('canvas'),dx=dc.getContext('2d',{willReadFrequently:true});
+function groups(vals,tol){const a=[...vals].sort((x,y)=>x-y),g=[];let cur=[a[0]];
+ for(let i=1;i<a.length;i++){const m=cur.reduce((s,v)=>s+v,0)/cur.length;if(a[i]-m>tol){g.push(cur);cur=[a[i]]}else cur.push(a[i])}
+ g.push(cur);return g.map(x=>x.reduce((s,v)=>s+v,0)/x.length)}
+const near=(arr,v)=>{let b=0;for(let i=1;i<arr.length;i++)if(Math.abs(arr[i]-v)<Math.abs(arr[b]-v))b=i;return b};
+function detect(){
+ const vw=video.videoWidth,vh=video.videoHeight;if(!vw)return null;
+ const w=DW,h=Math.round(DW*vh/vw),n=w*h;dc.width=w;dc.height=h;dx.drawImage(video,0,0,w,h);
+ const d=dx.getImageData(0,0,w,h).data,g=new Uint8Array(n),hist=new Array(256).fill(0);let tot=0,sum=0;
+ for(let i=0;i<n;i++){g[i]=d[i*4]*.3+d[i*4+1]*.59+d[i*4+2]*.11;if(g[i]>=30){hist[g[i]]++;tot++;sum+=g[i]}}
+ if(tot<n*.1)return null;
+ let wB=0,sB=0,best=-1,th=128;
+ for(let t=30;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=tot-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;th=t}}
+ const e=new Uint8Array(n);
+ for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const i=y*w+x;e[i]=g[i]>th&&g[i-1]>th&&g[i+1]>th&&g[i-w]>th&&g[i+w]>th?1:0}
+ const seen=new Uint8Array(n),bl=[];
+ for(let s=0;s<n;s++){if(!e[s]||seen[s])continue;const st=[s];seen[s]=1;let a=0,x0=w,x1=0,y0=h,y1=0;
+  while(st.length){const p=st.pop(),px=p%w,py=(p/w)|0;a++;if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;
+   for(const q of [p-1,p+1,p-w,p+w])if(q>=0&&q<n&&e[q]&&!seen[q]){seen[q]=1;st.push(q)}}
+  const bw=x1-x0+1,bh=y1-y0+1;
+  if(a>n*.0006&&bw/bh>.5&&bw/bh<2.2&&a/(bw*bh)>.45)bl.push({x:x0,y:y0,w:bw,h:bh,cx:x0+bw/2,cy:y0+bh/2})}
+ if(bl.length<6)return null;
+ const med=k=>{const a=bl.map(b=>b[k]).sort((p,q)=>p-q);return a[a.length>>1]},mw=med('w'),mh=med('h');
+ const ok=bl.filter(b=>Math.abs(b.w-mw)<.35*mw&&Math.abs(b.h-mh)<.35*mh);if(ok.length<6)return null;
+ const ry=groups(ok.map(b=>b.cy),.55*mh),cx=groups(ok.map(b=>b.cx),.55*mw),R=ry.length,C=cx.length;
+ if(R<2||C<2||ok.length<.6*R*C)return null;
+ const sx=vw/w,sy=vh/h,rects=Array(R*C).fill(null);
+ ok.forEach(b=>{rects[near(ry,b.cy)*C+near(cx,b.cx)]={x:(b.x-1)*sx,y:(b.y-1)*sy,w:(b.w+2)*sx,h:(b.h+2)*sy}});
+ for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(!rects[r*C+c])rects[r*C+c]={x:(cx[c]-mw/2)*sx,y:(ry[r]-mh/2)*sy,w:mw*sx,h:mh*sy,miss:true};
+ return{R,C,rects}}
+function accept(det){
+ if(!S.locked){const c=S.cand;if(det.R===c.R&&det.C===c.C)c.n++;else S.cand={R:det.R,C:det.C,n:1};
+  if(S.cand.n>=4){S.rows=det.R;S.cols=det.C;S.locked=true;initCells();rBoard()}}
+ else if(det.R!==S.rows||det.C!==S.cols)return;
+ const old=S.rects;
+ S.rects=det.rects.map((r,i)=>{const o=old&&old.length===det.rects.length?old[i]:null;
+  return o&&!o.miss&&!r.miss?{x:o.x+(r.x-o.x)*.5,y:o.y+(r.y-o.y)*.5,w:o.w+(r.w-o.w)*.5,h:o.h+(r.h-o.h)*.5}:r})}
 
-  const video = $('#video'), photo = $('#photo'), stage = $('#stage'), gr = $('#gridRect');
+/* ---------- Muestreo de casillas y captura automática ---------- */
+const sc=document.createElement('canvas');sc.width=sc.height=8;const sx_=sc.getContext('2d',{willReadFrequently:true});
+function crop(r,sz,m,cv){const c=cv||document.createElement('canvas');c.width=c.height=sz;
+ c.getContext('2d').drawImage(video,r.x+r.w*m,r.y+r.h*m,r.w*(1-2*m),r.h*(1-2*m),0,0,sz,sz);return c}
+function vec(r){sx_.drawImage(video,r.x+r.w*.15,r.y+r.h*.15,r.w*.7,r.h*.7,0,0,8,8);
+ const d=sx_.getImageData(0,0,8,8).data,v=new Float32Array(192);let k=0;
+ for(let p=0;p<256;p+=4){v[k++]=d[p]/255;v[k++]=d[p+1]/255;v[k++]=d[p+2]/255}return v}
+const mad=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length};
+function calibrate(){
+ const vs=S.rects.filter(r=>!r.miss).map(vec);if(vs.length<6)return;
+ const m=new Float32Array(192);for(let k=0;k<192;k++){const a=vs.map(v=>v[k]).sort((p,q)=>p-q);m[k]=a[a.length>>1]}
+ if(vs.filter(v=>mad(v,m)<.12).length>=.85*vs.length){S.back=m;toast('Reverso calibrado, ya puedes jugar')}}
+function process(){
+ if(!S.locked||!S.rects)return;if(!S.back){calibrate();return}
+ S.rects.forEach((r,i)=>{const cs=S.cs[i]||(S.cs[i]={});if(r.miss){cs.prev=null;return}
+  const v=vec(r),dB=mad(v,S.back),df=cs.prev?mad(v,cs.prev):1;cs.prev=v;
+  if(dB<.1){cs.armed=true;cs.st=0;cs.up=false;for(let k=0;k<192;k++)S.back[k]+=(v[k]-S.back[k])*.02;return}
+  cs.up=true;cs.st=df<.04?(cs.st||0)+1:0;const c=S.cells[i];
+  if(cs.armed&&cs.st>=3&&!S.busy&&!S.loading&&!(c&&c.matched)){cs.armed=false;reveal(i)}})}
 
-  const lab = i => String.fromCharCode(65 + Math.floor(i / state.cols)) + (i % state.cols + 1);
-  const pairColor = id => `hsl(${(id * 67) % 360} 90% 62%)`;
+/* ---------- Reconocimiento: MobileNet (o comparación básica de respaldo) ---------- */
+const ec=document.createElement('canvas');ec.width=ec.height=16;const ex=ec.getContext('2d',{willReadFrequently:true});
+async function embed(cv){let a;
+ if(S.model){const t=S.model.infer(cv,true);a=Array.from(await t.data());t.dispose()}
+ else{ex.drawImage(cv,0,0,16,16);const d=ex.getImageData(0,0,16,16).data;a=[];for(let p=0;p<d.length;p+=4)a.push(d[p],d[p+1],d[p+2]);
+  const m=a.reduce((s,v)=>s+v,0)/a.length;a=a.map(v=>v-m)}
+ const n=Math.hypot(...a)||1;return Float32Array.from(a,v=>v/n)}
+const dot=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+function ld(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+async function loadModel(){S.loading=true;S.ia='cargando MobileNet…';sync();
+ try{await ld('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+  await ld('https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js');
+  S.model=await mobilenet.load({version:2,alpha:1.0});S.ia='MobileNet lista'}
+ catch(e){S.model=null;S.ia='comparación básica (no se pudo cargar MobileNet)';S.sens=.75;$('#rS').value=75;toast('Sin MobileNet: uso comparación básica')}
+ S.loading=false;sync()}
+async function reveal(i){S.busy=true;
+ try{const cv=crop(S.rects[i],224,.08),emb=await embed(cv),t=document.createElement('canvas');t.width=t.height=80;t.getContext('2d').drawImage(cv,0,0,80,80);
+  const thumb=t.toDataURL('image/jpeg',.7);let b={j:-1,s:-1};
+  S.cells.forEach((c,j)=>{if(j===i||!c||c.matched)return;const s=dot(emb,c.emb);if(s>b.s)b={j,s}});
+  if(b.j>=0&&b.s>=S.sens){const id=++S.pairSeq;S.cells[i]={thumb,emb,matched:true,pairId:id};S.cells[b.j].matched=true;S.cells[b.j].pairId=id;
+   S.flash={a:i,b:b.j,t:Date.now()};say(`Pareja: ${spk(i)} con ${spk(b.j)}`);toast(`Pareja: ${lab(i)} y ${lab(b.j)}`)}
+  else{S.cells[i]={thumb,emb,matched:false,pairId:null};toast(`Guardada en ${lab(i)}`)}
+ }catch(e){toast('No pude leer esa carta')}
+ S.busy=false;rBoard()}
 
-  function initCells() {
-    state.cells = Array(state.rows * state.cols).fill(null);
-    state.pending = null; state.pairSeq = 0; state.hist = []; state.sel = [];
-  }
+/* ---------- Dibujo ---------- */
+function draw(){const vw=video.videoWidth,vh=video.videoHeight;if(!vw)return;
+ if(ov.width!==vw){ov.width=vw;ov.height=vh}octx.clearRect(0,0,vw,vh);
+ const p=$('#pill');p.textContent=!S.locked?'Buscando tablero…':!S.back?'Calibrando: cartas boca abajo…':S.loading?'Cargando IA…':`Tablero ${S.rows}×${S.cols} · ${S.model?'MobileNet':'modo básico'}`;
+ if(!S.rects)return;octx.lineWidth=Math.max(2,vw/400);octx.font=`bold ${Math.round(vw/48)}px sans-serif`;
+ const fl=S.flash&&Date.now()-S.flash.t<3000?S.flash:null;
+ S.rects.forEach((r,i)=>{if(r.miss)return;const c=S.cells[i],cs=S.cs[i]||{};let col='rgba(255,255,255,.5)';
+  if(c&&c.matched)col=pc(c.pairId);else if(c)col='#35d6c4';else if(cs.up)col='#ffc83d';
+  if(c&&c.matched){octx.globalAlpha=.3;octx.fillStyle=col;octx.fillRect(r.x,r.y,r.w,r.h);octx.globalAlpha=1}
+  octx.strokeStyle=fl&&(fl.a===i||fl.b===i)?'#ffc83d':col;octx.lineWidth=fl&&(fl.a===i||fl.b===i)?vw/150:Math.max(2,vw/400);
+  octx.strokeRect(r.x,r.y,r.w,r.h);if(S.locked){octx.fillStyle='#fff';octx.fillText(lab(i),r.x+4,r.y+Math.round(vw/48)+2)}})}
+function fit(){const vw=video.videoWidth,vh=video.videoHeight;if(!vw)return;const w=$('#wrap'),aw=w.clientWidth-16,ah=w.clientHeight-4;
+ let sw=aw,sh=sw*vh/vw;if(sh>ah){sh=ah;sw=sh*vw/vh}stage.style.width=sw+'px';stage.style.height=sh+'px'}
+new ResizeObserver(fit).observe($('#wrap'));video.addEventListener('loadedmetadata',fit);
 
-  /* ---------- Utilidades ---------- */
-  function toast(msg) {
-    const t = $('#toast');
-    t.textContent = msg; t.classList.add('on');
-    clearTimeout(toastT);
-    toastT = setTimeout(() => t.classList.remove('on'), 2200);
-  }
-  function buzz(p = 40) { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} }
+/* ---------- Tablero y estadísticas ---------- */
+function rBoard(){const g=$('#bg');g.style.gridTemplateColumns=`repeat(${S.cols||1},1fr)`;g.innerHTML='';
+ S.cells.forEach((c,i)=>{const d=document.createElement('div');d.className='bc'+(c?'':' e')+(c&&c.matched?' m':'');
+  if(c){d.innerHTML=`<img src="${c.thumb}" alt=""><span class="bl">${lab(i)}</span>`;if(c.matched)d.style.borderColor=pc(c.pairId)}
+  else d.innerHTML=`<span class="bl">${lab(i)}</span>`;
+  d.onclick=()=>{const c=S.cells[i];if(!c)return;
+   if(c.matched){S.cells.forEach(x=>{if(x&&x.pairId===c.pairId){x.matched=false;x.pairId=null}});toast('Pareja quitada')}
+   else{S.cells[i]=null;toast('Carta borrada')}rBoard()};g.appendChild(d)});
+ const seen=S.cells.filter(Boolean).length,pr=S.cells.filter(c=>c&&c.matched).length/2;
+ $('#stS').textContent=seen;$('#stP').textContent=pr+'/'+Math.floor(S.cells.length/2);
+ $('#bsub').textContent=seen?'Toca una carta para borrarla, o una pareja para deshacerla.':'Aún no hay cartas guardadas.'}
+function sync(){$('#oS').textContent=Math.round(S.sens*100)+'%';$('#rS').value=Math.round(S.sens*100);$('#ia').textContent='Reconocimiento: '+S.ia}
 
-  function pushHist() {
-    state.hist.push({ cells: state.cells.map(c => c ? { ...c } : null), pairSeq: state.pairSeq });
-    if (state.hist.length > 40) state.hist.shift();
-  }
-  function undo() {
-    if (state.pending) { state.pending = null; renderAll(); return; }
-    const h = state.hist.pop();
-    if (!h) { toast('No hay nada que deshacer'); return; }
-    state.cells = h.cells; state.pairSeq = h.pairSeq; state.sel = [];
-    renderAll(); toast('Deshecho');
-  }
-
-  /* ---------- Fuente de imagen (video o foto) ---------- */
-  const srcEl = () => mode === 'video' ? video : mode === 'photo' ? photo : null;
-  const srcW = () => mode === 'video' ? video.videoWidth : mode === 'photo' ? photo.naturalWidth : 0;
-  const srcH = () => mode === 'video' ? video.videoHeight : mode === 'photo' ? photo.naturalHeight : 0;
-
-  function setMode(m) {
-    mode = m;
-    const on = !!m;
-    $('#start').style.display = on ? 'none' : 'flex';
-    $('#stageWrap').style.display = on ? 'flex' : 'none';
-    $('#hint').style.display = on ? 'block' : 'none';
-    $('#actions').style.display = on ? 'flex' : 'none';
-    video.style.display = m === 'video' ? 'block' : 'none';
-    photo.style.display = m === 'photo' ? 'block' : 'none';
-    $('#btnCam').textContent = m === 'photo' ? 'Tomar otra foto' : 'Cambiar cámara';
-    $('#hint').textContent = m === 'photo'
-      ? 'Toma una foto del tablero y toca la casilla de la carta que acabas de voltear.'
-      : 'Encaja la cuadrícula (arrástrala o mueve las esquinas) y toca la casilla de la carta volteada.';
-    fitStage();
-  }
-
-  function fitStage() {
-    const w = srcW(), h = srcH();
-    if (!w || !h) return;
-    const wrap = $('#stageWrap');
-    const aw = wrap.clientWidth - 16, ah = wrap.clientHeight - 4;
-    if (aw <= 0 || ah <= 0) return;
-    const ar = w / h;
-    let sw = aw, sh = sw / ar;
-    if (sh > ah) { sh = ah; sw = sh * ar; }
-    stage.style.width = sw + 'px';
-    stage.style.height = sh + 'px';
-  }
-  new ResizeObserver(fitStage).observe($('#stageWrap'));
-  video.addEventListener('loadedmetadata', fitStage);
-  photo.addEventListener('load', fitStage);
-
-  async function startCamera() {
-    $('#startMsg').textContent = '';
-    stopCamera();
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      $('#startMsg').textContent = 'El navegador bloqueó la cámara en vivo (necesita una página segura https). Usa fotos mientras tanto.';
-      return;
-    }
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: state.facing }, width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: false
-      });
-      video.srcObject = stream;
-      await video.play();
-      setMode('video');
-      try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
-    } catch (e) {
-      const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
-      $('#startMsg').textContent = denied
-        ? 'No diste permiso a la cámara. Actívalo en los ajustes del navegador o usa fotos.'
-        : 'No se pudo abrir la cámara. Prueba de nuevo o usa fotos.';
-    }
-  }
-  function stopCamera() {
-    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  }
-
-  $('#btnStart').onclick = startCamera;
-  $('#btnPhotoMode').onclick = () => $('#fileIn').click();
-  $('#fileIn').onchange = () => {
-    const f = $('#fileIn').files[0];
-    if (!f) return;
-    if (photoURL) URL.revokeObjectURL(photoURL);
-    photoURL = URL.createObjectURL(f);
-    photo.onload = () => { stopCamera(); setMode('photo'); };
-    photo.src = photoURL;
-    $('#fileIn').value = '';
-  };
-  $('#btnCam').onclick = () => {
-    if (mode === 'photo') { $('#fileIn').click(); return; }
-    state.facing = state.facing === 'environment' ? 'user' : 'environment';
-    startCamera();
-  };
-  $('#btnUndo').onclick = undo;
-
-  /* ---------- Cuadrícula sobre la cámara ---------- */
-  function positionRect() {
-    const r = state.rect;
-    gr.style.left = r.x * 100 + '%';
-    gr.style.top = r.y * 100 + '%';
-    gr.style.width = r.w * 100 + '%';
-    gr.style.height = r.h * 100 + '%';
-  }
-  function buildGrid() {
-    const c = $('#cells');
-    c.innerHTML = '';
-    c.style.gridTemplateColumns = `repeat(${state.cols},1fr)`;
-    c.style.gridTemplateRows = `repeat(${state.rows},1fr)`;
-    for (let i = 0; i < state.rows * state.cols; i++) {
-      const d = document.createElement('div');
-      d.className = 'cell'; d.dataset.i = i;
-      d.innerHTML = `<span class="lb">${lab(i)}</span>`;
-      c.appendChild(d);
-    }
-    positionRect();
-  }
-  function renderGrid() {
-    const els = $('#cells').children;
-    const p = state.pending;
-    state.cells.forEach((c, i) => {
-      const el = els[i]; if (!el) return;
-      el.classList.toggle('has', !!c && !c.matched);
-      el.classList.toggle('done', !!c && c.matched);
-      el.classList.toggle('pa', !!p && p.i === i);
-      el.classList.toggle('pb', !!p && p.j === i);
-      let dot = el.querySelector('.dot');
-      if (c && c.matched) {
-        if (!dot) { dot = document.createElement('i'); dot.className = 'dot'; el.appendChild(dot); }
-        dot.style.background = pairColor(c.pairId);
-      } else if (dot) dot.remove();
-    });
-    gr.classList.toggle('blocked', !!p);
-  }
-
-  let drag = null;
-  gr.addEventListener('pointerdown', e => {
-    if (state.pending) return;
-    const h = e.target.closest('.handle');
-    const cell = e.target.closest('.cell');
-    drag = {
-      mode: h ? h.dataset.h : 'move', sx: e.clientX, sy: e.clientY,
-      r: { ...state.rect }, moved: false, cell: cell ? +cell.dataset.i : null
-    };
-    gr.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-  gr.addEventListener('pointermove', e => {
-    if (!drag) return;
-    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
-    if (!drag.moved && Math.hypot(dx, dy) < 8) return;
-    drag.moved = true;
-    const fx = dx / stage.clientWidth, fy = dy / stage.clientHeight;
-    const r = drag.r, min = .15;
-    const n = { ...r };
-    if (drag.mode === 'move') {
-      n.x = clamp(r.x + fx, 0, 1 - r.w);
-      n.y = clamp(r.y + fy, 0, 1 - r.h);
-    } else if (drag.mode === 'br') {
-      n.w = clamp(r.w + fx, min, 1 - r.x);
-      n.h = clamp(r.h + fy, min, 1 - r.y);
-    } else {
-      const nx = clamp(r.x + fx, 0, r.x + r.w - min);
-      const ny = clamp(r.y + fy, 0, r.y + r.h - min);
-      n.w = r.w - (nx - r.x); n.h = r.h - (ny - r.y); n.x = nx; n.y = ny;
-    }
-    state.rect = n; positionRect();
-  });
-  gr.addEventListener('pointerup', () => {
-    if (!drag) return;
-    const d = drag; drag = null;
-    if (!d.moved && d.mode === 'move' && d.cell !== null) onCellTap(d.cell);
-  });
-  gr.addEventListener('pointercancel', () => { drag = null; });
-
-  /* ---------- Captura y reconocimiento ---------- */
-  const mc = document.createElement('canvas'); mc.width = mc.height = 48;
-  const mctx = mc.getContext('2d'); mctx.imageSmoothingQuality = 'high';
-  const fc = document.createElement('canvas'); fc.width = fc.height = 12;
-  const fctx = fc.getContext('2d', { willReadFrequently: true }); fctx.imageSmoothingQuality = 'high';
-  const tc = document.createElement('canvas');
-  const tctx = tc.getContext('2d');
-
-  function capture(i) {
-    const el = srcEl(), vw = srcW(), vh = srcH();
-    if (!el || !vw || !vh) return null;
-    const r = Math.floor(i / state.cols), c = i % state.cols;
-    const cw = state.rect.w * vw / state.cols, ch = state.rect.h * vh / state.rows;
-    const x = state.rect.x * vw + c * cw, y = state.rect.y * vh + r * ch;
-    const m = .1;
-    const sx = x + cw * m, sy = y + ch * m, sw = cw * (1 - 2 * m), sh = ch * (1 - 2 * m);
-
-    // Miniatura para mostrar
-    tc.width = 96;
-    tc.height = clamp(Math.round(96 * sh / sw), 60, 150);
-    tctx.drawImage(el, sx, sy, sw, sh, 0, 0, tc.width, tc.height);
-    const thumb = tc.toDataURL('image/jpeg', .72);
-
-    // Huella: 12x12 RGB normalizada (resiste cambios de brillo)
-    mctx.drawImage(el, sx, sy, sw, sh, 0, 0, 48, 48);
-    fctx.drawImage(mc, 0, 0, 12, 12);
-    const d = fctx.getImageData(0, 0, 12, 12).data;
-    const v = new Float32Array(432);
-    let k = 0, sum = 0;
-    for (let p = 0; p < d.length; p += 4) {
-      v[k++] = d[p]; v[k++] = d[p + 1]; v[k++] = d[p + 2];
-    }
-    for (let q = 0; q < v.length; q++) sum += v[q];
-    const mean = sum / v.length;
-    let varr = 0;
-    for (let q = 0; q < v.length; q++) varr += (v[q] - mean) ** 2;
-    const std = Math.sqrt(varr / v.length) || 1;
-    for (let q = 0; q < v.length; q++) v[q] = (v[q] - mean) / std;
-    return { thumb, feat: v };
-  }
-  function similarity(a, b) {
-    let s = 0;
-    for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-    return s / a.length;
-  }
-
-  /* ---------- Jugada ---------- */
-  function onCellTap(i) {
-    if (!mode) return;
-    const cur = state.cells[i];
-    if (cur && cur.matched) { toast(`${lab(i)} ya está resuelta`); return; }
-    const cap = capture(i);
-    if (!cap) { toast('La cámara aún no está lista'); return; }
-    let best = { j: -1, score: -1 };
-    state.cells.forEach((c, j) => {
-      if (j === i || !c || c.matched) return;
-      const s = similarity(cap.feat, c.feat);
-      if (s > best.score) best = { j, score: s };
-    });
-    if (best.j >= 0 && best.score >= state.sens) {
-      state.pending = { i, j: best.j, score: best.score, cap };
-      buzz([60, 40, 60]);
-      renderPending(); renderGrid();
-      return;
-    }
-    commitNew(i, cap);
-  }
-  function commitNew(i, cap) {
-    pushHist();
-    state.cells[i] = { thumb: cap.thumb, feat: cap.feat, matched: false, pairId: null };
-    state.pending = null;
-    buzz(25);
-    toast(`Guardada en ${lab(i)}`);
-    renderAll();
-  }
-  function confirmPair() {
-    const p = state.pending; if (!p) return;
-    pushHist();
-    const id = ++state.pairSeq;
-    state.cells[p.i] = { thumb: p.cap.thumb, feat: p.cap.feat, matched: true, pairId: id };
-    state.cells[p.j] = { ...state.cells[p.j], matched: true, pairId: id };
-    state.pending = null;
-    const total = Math.floor(state.cells.length / 2);
-    const found = state.cells.filter(c => c && c.matched).length / 2;
-    toast(found >= total ? '¡Tablero completo!' : `Pareja: ${lab(p.i)} y ${lab(p.j)}`);
-    renderAll();
-  }
-  function rejectPair() {
-    const p = state.pending; if (!p) return;
-    commitNew(p.i, p.cap);
-  }
-  $('#btnYes').onclick = confirmPair;
-  $('#btnNo').onclick = rejectPair;
-
-  function renderPending() {
-    const p = state.pending, box = $('#pend');
-    if (!p) { box.style.display = 'none'; return; }
-    $('#pImgNew').src = p.cap.thumb;
-    $('#pImgOld').src = state.cells[p.j].thumb;
-    $('#pLabNew').textContent = `Ahora ${lab(p.i)}`;
-    $('#pLabOld').textContent = `Antes ${lab(p.j)}`;
-    $('#pTxt').innerHTML = `Esta carta ya salió en ${lab(p.j)}<small>Parecido: ${Math.round(p.score * 100)}%</small>`;
-    box.style.display = 'flex';
-  }
-
-  /* ---------- Tablero (memoria) ---------- */
-  function toggleSel(i) {
-    const k = state.sel.indexOf(i);
-    if (k >= 0) state.sel.splice(k, 1); else state.sel.push(i);
-    renderBoard();
-  }
-  function renderBoard() {
-    const g = $('#boardGrid');
-    g.style.gridTemplateColumns = `repeat(${state.cols},1fr)`;
-    g.innerHTML = '';
-    state.cells.forEach((c, i) => {
-      const d = document.createElement('div');
-      d.className = 'bc' + (c ? '' : ' empty') + (c && c.matched ? ' done' : '') + (state.sel.includes(i) ? ' sel' : '');
-      if (c) {
-        d.innerHTML = `<img src="${c.thumb}" alt="Carta en ${lab(i)}"><span class="bl">${lab(i)}</span>`;
-        if (c.matched) {
-          d.style.borderColor = pairColor(c.pairId);
-          d.insertAdjacentHTML('beforeend', '<span class="ck">✓</span>');
-        }
-      } else {
-        d.innerHTML = `<span class="bl">${lab(i)}</span><span class="q">?</span>`;
-      }
-      d.onclick = () => toggleSel(i);
-      g.appendChild(d);
-    });
-
-    const seen = state.cells.filter(Boolean).length;
-    $('#boardSub').textContent = seen
-      ? 'Toca dos cartas para marcarlas como pareja, o una para borrarla.'
-      : 'Aún no hay cartas guardadas. Ve a Cámara y toca las casillas que se volteen.';
-
-    const bar = $('#selBar'), sel = state.sel, has = sel.filter(i => state.cells[i]);
-    if (!sel.length) { bar.style.display = 'none'; return; }
-    let html = '';
-    if (sel.length === 2 && has.length === 2 && has.every(i => !state.cells[i].matched))
-      html += '<button class="btn mint small" data-act="pair">Marcar pareja</button>';
-    if (has.length && has.every(i => state.cells[i].matched))
-      html += '<button class="btn small" data-act="unpair">Quitar pareja</button>';
-    if (has.length)
-      html += '<button class="btn danger small" data-act="del">Borrar</button>';
-    html += '<button class="btn ghost small" data-act="clear">Cancelar</button>';
-    bar.innerHTML = html;
-    bar.style.display = 'flex';
-  }
-  function unmatch(pid) {
-    state.cells.forEach(c => { if (c && c.pairId === pid) { c.matched = false; c.pairId = null; } });
-  }
-  $('#selBar').addEventListener('click', e => {
-    const b = e.target.closest('button'); if (!b) return;
-    const act = b.dataset.act, sel = [...state.sel];
-    if (act === 'clear') { state.sel = []; renderBoard(); return; }
-    pushHist();
-    if (act === 'pair') {
-      const id = ++state.pairSeq;
-      sel.forEach(i => { state.cells[i].matched = true; state.cells[i].pairId = id; });
-      toast(`Pareja: ${lab(sel[0])} y ${lab(sel[1])}`);
-    } else if (act === 'unpair') {
-      sel.forEach(i => { const c = state.cells[i]; if (c && c.pairId) unmatch(c.pairId); });
-      toast('Pareja quitada');
-    } else if (act === 'del') {
-      sel.forEach(i => {
-        const c = state.cells[i];
-        if (c && c.pairId) unmatch(c.pairId);
-        state.cells[i] = null;
-      });
-      toast('Carta borrada');
-    }
-    state.sel = [];
-    renderAll();
-  });
-
-  /* ---------- Render general ---------- */
-  function renderStats() {
-    const seen = state.cells.filter(Boolean).length;
-    const pairs = state.cells.filter(c => c && c.matched).length / 2;
-    $('#stSeen').textContent = seen;
-    $('#stPairs').textContent = `${pairs}/${Math.floor(state.cells.length / 2)}`;
-  }
-  function renderAll() { renderGrid(); renderPending(); renderBoard(); renderStats(); }
-
-  /* ---------- Navegación ---------- */
-  function showTab(t) {
-    $('#vCam').classList.toggle('on', t === 'cam');
-    $('#vBoard').classList.toggle('on', t === 'board');
-    $('#tabCam').classList.toggle('on', t === 'cam');
-    $('#tabBoard').classList.toggle('on', t === 'board');
-    if (t === 'board') { state.sel = []; renderBoard(); } else fitStage();
-  }
-  $('#tabCam').onclick = () => showTab('cam');
-  $('#tabBoard').onclick = () => showTab('board');
-
-  /* ---------- Ajustes ---------- */
-  function syncSettings() {
-    $('#oRows').textContent = state.rows;
-    $('#oCols').textContent = state.cols;
-    $('#oSens').textContent = Math.round(state.sens * 100);
-    $('#rngSens').value = Math.round(state.sens * 100);
-  }
-  function resetGame(msg) {
-    initCells(); buildGrid(); renderAll(); syncSettings();
-    if (msg) toast(msg);
-  }
-  $('#btnSet').onclick = () => { syncSettings(); $('#sheet').classList.add('on'); };
-  $('#btnClose').onclick = () => $('#sheet').classList.remove('on');
-  $('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') $('#sheet').classList.remove('on'); });
-  document.querySelectorAll('.step button').forEach(b => {
-    b.onclick = () => {
-      const k = b.dataset.k, nv = clamp(state[k] + (+b.dataset.d), 2, 8);
-      if (nv === state[k]) return;
-      state[k] = nv;
-      resetGame('Cuadrícula cambiada: partida reiniciada');
-    };
-  });
-  $('#rngSens').oninput = e => { state.sens = +e.target.value / 100; $('#oSens').textContent = e.target.value; };
-
-  let resetArm = null;
-  $('#btnReset').onclick = e => {
-    const b = e.currentTarget;
-    if (!resetArm) {
-      b.textContent = 'Toca otra vez para confirmar';
-      resetArm = setTimeout(() => { b.textContent = 'Reiniciar partida'; resetArm = null; }, 3000);
-      return;
-    }
-    clearTimeout(resetArm); resetArm = null;
-    b.textContent = 'Reiniciar partida';
-    resetGame('Partida reiniciada');
-    $('#sheet').classList.remove('on');
-  };
-
-  /* ---------- Inicio ---------- */
-  initCells(); buildGrid(); renderAll(); syncSettings(); setMode(null);
+/* ---------- Cámara y eventos ---------- */
+async function go(){$('#err').textContent='';
+ try{if(window.speechSynthesis)speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});
+  video.srcObject=stream;await video.play();on=true;
+  $('#start').style.display='none';$('#wrap').style.display='flex';$('#hint').style.display='block';fit();
+  try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
+  if(!S.model&&!S.loading)loadModel();
+ }catch(e){$('#err').textContent='No se pudo abrir la cámara. Revisa el permiso y que la página sea https.'}}
+$('#bGo').onclick=go;
+setInterval(()=>{if(!on)return;const d=detect();if(d)accept(d);process();draw()},110);
+const tab=t=>{$('#vCam').classList.toggle('on',t==='c');$('#vBoard').classList.toggle('on',t==='b');$('#tC').classList.toggle('on',t==='c');$('#tB').classList.toggle('on',t==='b');if(t==='b')rBoard();else fit()};
+$('#tC').onclick=()=>tab('c');$('#tB').onclick=()=>tab('b');
+$('#bSet').onclick=()=>{sync();$('#sheet').classList.add('on')};$('#bX').onclick=()=>$('#sheet').classList.remove('on');
+$('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').classList.remove('on')};
+$('#rS').oninput=e=>{S.sens=+e.target.value/100;$('#oS').textContent=e.target.value+'%'};
+$('#cV').onchange=e=>{S.voice=e.target.checked};
+$('#bCal').onclick=()=>{S.back=null;$('#sheet').classList.remove('on');toast('Pon todas las cartas boca abajo')};
+let arm=null;$('#bRes').onclick=e=>{const b=e.currentTarget;
+ if(!arm){b.textContent='Toca otra vez para confirmar';arm=setTimeout(()=>{b.textContent='Reiniciar partida';arm=null},3000);return}
+ clearTimeout(arm);arm=null;b.textContent='Reiniciar partida';
+ S.locked=false;S.rows=S.cols=0;S.back=null;S.rects=null;S.cand={R:0,C:0,n:0};initCells();rBoard();$('#sheet').classList.remove('on');toast('Partida reiniciada')};
+initCells();rBoard();sync();
 })();
-</script>
-</body>
-</html>
+</script></body></html>
