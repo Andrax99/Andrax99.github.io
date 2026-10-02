@@ -117,16 +117,23 @@ function vec(r){sx_.drawImage(video,r.x+r.w*.15,r.y+r.h*.15,r.w*.7,r.h*.7,0,0,8,
  for(let p=0;p<256;p+=4){v[k++]=d[p]/255;v[k++]=d[p+1]/255;v[k++]=d[p+2]/255}return v}
 const mad=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length};
 function calibrate(){
- const vs=S.rects.filter(r=>!r.miss).map(vec);if(vs.length<6)return;
- const m=new Float32Array(192);for(let k=0;k<192;k++){const a=vs.map(v=>v[k]).sort((p,q)=>p-q);m[k]=a[a.length>>1]}
- if(vs.filter(v=>mad(v,m)<.12).length>=.85*vs.length){S.back=m;toast('Reverso calibrado, ya puedes jugar')}}
+ const vs=S.rects.map(r=>r.miss?null:vec(r)),ok=vs.filter(Boolean);if(ok.length<6)return;
+ const m=new Float32Array(192);for(let k=0;k<192;k++){const a=ok.map(v=>v[k]).sort((p,q)=>p-q);m[k]=a[a.length>>1]}
+ if(ok.filter(v=>mad(v,m)<.12).length>=.85*ok.length){
+  S.back=vs.map(v=>v&&mad(v,m)<.12?v:Float32Array.from(m));S.bemb=null;backEmb()}}
+async function backEmb(){
+ const idx=S.rects.map((r,i)=>i).filter(i=>!S.rects[i].miss),es=[];
+ for(const f of [0,.33,.66,1])es.push(await embed(crop(S.rects[idx[Math.floor(f*(idx.length-1))]],224,.08)));
+ const s=new Float32Array(es[0].length);es.forEach(e=>e.forEach((v,k)=>s[k]+=v));
+ const n=Math.hypot(...s)||1;S.bemb=s.map(v=>v/n);toast('Reverso calibrado, ya puedes jugar')}
 function process(){
- if(!S.locked||!S.rects)return;if(!S.back){calibrate();return}
+ if(!S.locked||!S.rects)return;if(!S.back){if(!S.loading)calibrate();return}
  S.rects.forEach((r,i)=>{const cs=S.cs[i]||(S.cs[i]={});if(r.miss){cs.prev=null;return}
-  const v=vec(r),dB=mad(v,S.back),df=cs.prev?mad(v,cs.prev):1;cs.prev=v;
-  if(dB<.1){cs.armed=true;cs.st=0;cs.up=false;for(let k=0;k<192;k++)S.back[k]+=(v[k]-S.back[k])*.02;return}
+  const v=vec(r),b=S.back[i],dB=mad(v,b),df=cs.prev?mad(v,cs.prev):1;cs.prev=v;
+  if(dB<.12){cs.armed=true;cs.st=0;cs.up=false;for(let k=0;k<192;k++)b[k]+=(v[k]-b[k])*.03;return}
+  if(dB<.16)return;
   cs.up=true;cs.st=df<.04?(cs.st||0)+1:0;const c=S.cells[i];
-  if(cs.armed&&cs.st>=3&&!S.busy&&!S.loading&&!(c&&c.matched)){cs.armed=false;reveal(i)}})}
+  if(cs.armed&&cs.st>=3&&!S.busy&&!S.loading&&S.bemb&&!(c&&c.matched)){cs.armed=false;reveal(i)}})}
 
 /* ---------- Reconocimiento: MobileNet (o comparación básica de respaldo) ---------- */
 const ec=document.createElement('canvas');ec.width=ec.height=16;const ex=ec.getContext('2d',{willReadFrequently:true});
@@ -147,8 +154,9 @@ async function reveal(i){S.busy=true;
  try{const cv=crop(S.rects[i],224,.08),emb=await embed(cv),t=document.createElement('canvas');t.width=t.height=80;t.getContext('2d').drawImage(cv,0,0,80,80);
   const thumb=t.toDataURL('image/jpeg',.7);let b={j:-1,s:-1};
   S.cells.forEach((c,j)=>{if(j===i||!c||c.matched)return;const s=dot(emb,c.emb);if(s>b.s)b={j,s}});
-  if(b.j>=0&&b.s>=S.sens){const id=++S.pairSeq;S.cells[i]={thumb,emb,matched:true,pairId:id};S.cells[b.j].matched=true;S.cells[b.j].pairId=id;
-   S.flash={a:i,b:b.j,t:Date.now()};say(`Pareja: ${spk(i)} con ${spk(b.j)}`);toast(`Pareja: ${lab(i)} y ${lab(b.j)}`)}
+  if(S.bemb&&dot(emb,S.bemb)>.9){S.back[i]=vec(S.rects[i])}
+  else if(b.j>=0&&b.s>=S.sens){const id=++S.pairSeq;S.cells[i]={thumb,emb,matched:true,pairId:id};S.cells[b.j].matched=true;S.cells[b.j].pairId=id;
+   try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(e){}S.flash={a:i,b:b.j,t:Date.now()};say(`Pareja: ${spk(i)} con ${spk(b.j)}`);toast(`Pareja: ${lab(i)} y ${lab(b.j)}`)}
   else{S.cells[i]={thumb,emb,matched:false,pairId:null};toast(`Guardada en ${lab(i)}`)}
  }catch(e){toast('No pude leer esa carta')}
  S.busy=false;rBoard()}
@@ -156,14 +164,16 @@ async function reveal(i){S.busy=true;
 /* ---------- Dibujo ---------- */
 function draw(){const vw=video.videoWidth,vh=video.videoHeight;if(!vw)return;
  if(ov.width!==vw){ov.width=vw;ov.height=vh}octx.clearRect(0,0,vw,vh);
- const p=$('#pill');p.textContent=!S.locked?'Buscando tablero…':!S.back?'Calibrando: cartas boca abajo…':S.loading?'Cargando IA…':`Tablero ${S.rows}×${S.cols} · ${S.model?'MobileNet':'modo básico'}`;
+ const p=$('#pill');p.textContent=!S.locked?'Buscando tablero…':!S.back||!S.bemb?'Calibrando: cartas boca abajo…':S.loading?'Cargando IA…':`Tablero ${S.rows}×${S.cols} · ${S.model?'MobileNet':'modo básico'}`;
  if(!S.rects)return;octx.lineWidth=Math.max(2,vw/400);octx.font=`bold ${Math.round(vw/48)}px sans-serif`;
- const fl=S.flash&&Date.now()-S.flash.t<3000?S.flash:null;
- S.rects.forEach((r,i)=>{if(r.miss)return;const c=S.cells[i],cs=S.cs[i]||{};let col='rgba(255,255,255,.5)';
+ const fl=S.flash&&Date.now()-S.flash.t<6000?S.flash:null,bk=Math.floor(Date.now()/250)%2;
+ S.rects.forEach((r,i)=>{if(r.miss)return;const c=S.cells[i],cs=S.cs[i]||{},f=fl&&(fl.a===i||fl.b===i);let col='rgba(255,255,255,.5)';
   if(c&&c.matched)col=pc(c.pairId);else if(c)col='#35d6c4';else if(cs.up)col='#ffc83d';
-  if(c&&c.matched){octx.globalAlpha=.3;octx.fillStyle=col;octx.fillRect(r.x,r.y,r.w,r.h);octx.globalAlpha=1}
-  octx.strokeStyle=fl&&(fl.a===i||fl.b===i)?'#ffc83d':col;octx.lineWidth=fl&&(fl.a===i||fl.b===i)?vw/150:Math.max(2,vw/400);
-  octx.strokeRect(r.x,r.y,r.w,r.h);if(S.locked){octx.fillStyle='#fff';octx.fillText(lab(i),r.x+4,r.y+Math.round(vw/48)+2)}})}
+  if(c&&c.matched){octx.globalAlpha=f&&bk?.8:.3;octx.fillStyle=f&&bk?'#ffc83d':col;octx.fillRect(r.x,r.y,r.w,r.h);octx.globalAlpha=1}
+  octx.strokeStyle=f?(bk?'#fff':'#ffc83d'):col;octx.lineWidth=f?vw/110:Math.max(2,vw/400);octx.strokeRect(r.x,r.y,r.w,r.h);
+  if(S.locked){const t=lab(i),fs=Math.round(vw/34),m=c&&c.matched;octx.font=`900 ${fs}px sans-serif`;const tw=octx.measureText(t).width+fs*.6;
+   octx.fillStyle=m?col:'rgba(8,12,40,.9)';octx.fillRect(r.x+3,r.y+3,tw,fs*1.25);
+   octx.fillStyle=m?'#0b1030':'#ffe27a';octx.fillText(t,r.x+3+fs*.3,r.y+3+fs*.98)}})}
 function fit(){const vw=video.videoWidth,vh=video.videoHeight;if(!vw)return;const w=$('#wrap'),aw=w.clientWidth-16,ah=w.clientHeight-4;
  let sw=aw,sh=sw*vh/vw;if(sh>ah){sh=ah;sw=sh*vw/vh}stage.style.width=sw+'px';stage.style.height=sh+'px'}
 new ResizeObserver(fit).observe($('#wrap'));video.addEventListener('loadedmetadata',fit);
