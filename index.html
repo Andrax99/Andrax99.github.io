@@ -113,7 +113,7 @@ const sc=document.createElement('canvas');sc.width=sc.height=8;const sx_=sc.getC
 function crop(r,sz,m,cv){const c=cv||document.createElement('canvas');c.width=c.height=sz;
  c.getContext('2d').drawImage(video,r.x+r.w*m,r.y+r.h*m,r.w*(1-2*m),r.h*(1-2*m),0,0,sz,sz);return c}
 const fcv=document.createElement('canvas'),fx=fcv.getContext('2d',{willReadFrequently:true});
-function vec(r){const k=fcv.width/video.videoWidth;sx_.drawImage(fcv,(r.x+r.w*.15)*k,(r.y+r.h*.15)*k,r.w*.7*k,r.h*.7*k,0,0,8,8);
+function vec(r){const sk=fcv.width/video.videoWidth;sx_.drawImage(fcv,(r.x+r.w*.15)*sk,(r.y+r.h*.15)*sk,r.w*.7*sk,r.h*.7*sk,0,0,8,8);
  const d=sx_.getImageData(0,0,8,8).data,v=new Float32Array(192);let k=0;
  for(let p=0;p<256;p+=4){v[k++]=d[p]/255;v[k++]=d[p+1]/255;v[k++]=d[p+2]/255}return v}
 const mad=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length};
