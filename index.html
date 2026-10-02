@@ -112,7 +112,8 @@ function accept(det){
 const sc=document.createElement('canvas');sc.width=sc.height=8;const sx_=sc.getContext('2d',{willReadFrequently:true});
 function crop(r,sz,m,cv){const c=cv||document.createElement('canvas');c.width=c.height=sz;
  c.getContext('2d').drawImage(video,r.x+r.w*m,r.y+r.h*m,r.w*(1-2*m),r.h*(1-2*m),0,0,sz,sz);return c}
-function vec(r){sx_.drawImage(video,r.x+r.w*.15,r.y+r.h*.15,r.w*.7,r.h*.7,0,0,8,8);
+const fcv=document.createElement('canvas'),fx=fcv.getContext('2d',{willReadFrequently:true});
+function vec(r){const k=fcv.width/video.videoWidth;sx_.drawImage(fcv,(r.x+r.w*.15)*k,(r.y+r.h*.15)*k,r.w*.7*k,r.h*.7*k,0,0,8,8);
  const d=sx_.getImageData(0,0,8,8).data,v=new Float32Array(192);let k=0;
  for(let p=0;p<256;p+=4){v[k++]=d[p]/255;v[k++]=d[p+1]/255;v[k++]=d[p+2]/255}return v}
 const mad=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=Math.abs(a[i]-b[i]);return s/a.length};
@@ -127,13 +128,16 @@ async function backEmb(){
  const s=new Float32Array(es[0].length);es.forEach(e=>e.forEach((v,k)=>s[k]+=v));
  const n=Math.hypot(...s)||1;S.bemb=s.map(v=>v/n);toast('Reverso calibrado, ya puedes jugar')}
 function process(){
- if(!S.locked||!S.rects)return;if(!S.back){if(!S.loading)calibrate();return}
+ if(!S.locked||!S.rects)return;
+ if(fcv.width!==320){fcv.width=320;fcv.height=Math.round(320*video.videoHeight/video.videoWidth)}
+ fx.drawImage(video,0,0,fcv.width,fcv.height);
+ if(!S.back){if(!S.loading)calibrate();return}
  S.rects.forEach((r,i)=>{const cs=S.cs[i]||(S.cs[i]={});if(r.miss){cs.prev=null;return}
   const v=vec(r),b=S.back[i],dB=mad(v,b),df=cs.prev?mad(v,cs.prev):1;cs.prev=v;
   if(dB<.12){cs.armed=true;cs.st=0;cs.up=false;for(let k=0;k<192;k++)b[k]+=(v[k]-b[k])*.03;return}
   if(dB<.16)return;
-  cs.up=true;cs.st=df<.04?(cs.st||0)+1:0;const c=S.cells[i];
-  if(cs.armed&&cs.st>=3&&!S.busy&&!S.loading&&S.bemb&&!(c&&c.matched)){cs.armed=false;reveal(i)}})}
+  cs.up=true;cs.st=df<.07?(cs.st||0)+1:0;const c=S.cells[i];
+  if(cs.armed&&cs.st>=2&&!S.loading&&S.bemb&&!(c&&c.matched)){cs.armed=false;reveal(i)}})}
 
 /* ---------- Reconocimiento: MobileNet (o comparación básica de respaldo) ---------- */
 const ec=document.createElement('canvas');ec.width=ec.height=16;const ex=ec.getContext('2d',{willReadFrequently:true});
@@ -150,8 +154,9 @@ async function loadModel(){S.loading=true;S.ia='cargando MobileNet…';sync();
   S.model=await mobilenet.load({version:2,alpha:1.0});S.ia='MobileNet lista'}
  catch(e){S.model=null;S.ia='comparación básica (no se pudo cargar MobileNet)';S.sens=.75;$('#rS').value=75;toast('Sin MobileNet: uso comparación básica')}
  S.loading=false;sync()}
-async function reveal(i){S.busy=true;
- try{const cv=crop(S.rects[i],224,.08),emb=await embed(cv),t=document.createElement('canvas');t.width=t.height=80;t.getContext('2d').drawImage(cv,0,0,80,80);
+function reveal(i){const cv=crop(S.rects[i],224,.08);S.q=(S.q||Promise.resolve()).then(()=>doReveal(i,cv))}
+async function doReveal(i,cv){S.busy=true;
+ try{const emb=await embed(cv),t=document.createElement('canvas');t.width=t.height=80;t.getContext('2d').drawImage(cv,0,0,80,80);
   const thumb=t.toDataURL('image/jpeg',.7);let b={j:-1,s:-1};
   S.cells.forEach((c,j)=>{if(j===i||!c||c.matched)return;const s=dot(emb,c.emb);if(s>b.s)b={j,s}});
   if(S.bemb&&dot(emb,S.bemb)>.9){S.back[i]=vec(S.rects[i])}
@@ -201,7 +206,10 @@ async function go(){$('#err').textContent='';
   if(!S.model&&!S.loading)loadModel();
  }catch(e){$('#err').textContent='No se pudo abrir la cámara. Revisa el permiso y que la página sea https.'}}
 $('#bGo').onclick=go;
-setInterval(()=>{if(!on)return;const d=detect();if(d)accept(d);process();draw()},110);
+let lastD=0;
+setInterval(()=>{if(!on)return;const n=Date.now();
+ if(!S.locked||n-lastD>350){lastD=n;const d=detect();if(d)accept(d)}
+ process();draw()},50);
 const tab=t=>{$('#vCam').classList.toggle('on',t==='c');$('#vBoard').classList.toggle('on',t==='b');$('#tC').classList.toggle('on',t==='c');$('#tB').classList.toggle('on',t==='b');if(t==='b')rBoard();else fit()};
 $('#tC').onclick=()=>tab('c');$('#tB').onclick=()=>tab('b');
 $('#bSet').onclick=()=>{sync();$('#sheet').classList.add('on')};$('#bX').onclick=()=>$('#sheet').classList.remove('on');
